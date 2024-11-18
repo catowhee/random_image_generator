@@ -3,6 +3,7 @@ import requests
 import json
 import random
 import zmq
+import time
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -58,4 +59,20 @@ def get_fallback_image():
             rando = random.randint(0, len(store) - 1)
             return store[rando]
 
-print(get_random_image("ice cream"))
+
+# Server
+context = zmq.Context()
+socket = context.socket(zmq.REP)
+socket.bind("tcp://*:5555")
+
+while True:
+    message = socket.recv()
+    print(f"Received request from the client: {message.decode()}")
+    if len(message) > 0:
+        if message.decode() == 'Q': # Client asked server to quit
+            break
+        else:
+            time.sleep(3)
+            image = get_random_image(message.decode())
+            socket.send_string(json.dumps(image))
+context.destroy()
